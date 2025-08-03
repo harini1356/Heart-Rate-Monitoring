@@ -1,0 +1,140 @@
+#include <WiFi.h>
+#include "AdafruitIO_WiFi.h"
+#include <Adafruit_SSD1306.h>
+#include <Adafruit_GFX.h>
+#include <DHT.h>
+
+// --------- Replace with your Adafruit IO credentials ---------
+#define IO_USERNAME  "your username"       
+#define IO_KEY       "your Io_Key"
+
+// --------- Replace with your WiFi credentials ---------
+#define WIFI_SSID     "your wifi id"
+#define WIFI_PASS     "wifi password"
+
+// Initialize Adafruit IO
+AdafruitIO_WiFi io(IO_USERNAME, IO_KEY, WIFI_SSID, WIFI_PASS);
+
+// Feeds
+AdafruitIO_Feed *bpmFeed = io.feed("bpm");
+AdafruitIO_Feed *tempFeed = io.feed("temperature");
+AdafruitIO_Feed *humidityFeed = io.feed("humidity");
+
+// OLED display
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_RESET     -1
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+// Pulse sensor and LED
+const int pulsePin = 34;
+const int ledPin = 2;
+const int threshold = 550;
+unsigned long lastBeatTime = 0;
+int BPM = 0;
+int pulseValue = 0;
+
+// DHT11 sensor
+#define DHTPIN 15
+#define DHTTYPE DHT11
+DHT dht(DHTPIN, DHTTYPE);
+
+void setup() {
+  Serial.begin(115200);
+
+  // Start IO and WiFi
+  io.connect();
+
+  // Wait for connection
+  while (io.status() < AIO_CONNECTED) {
+    Serial.print(".");
+    delay(500);
+  }
+
+  Serial.println("Connected to Adafruit IO");
+
+  pinMode(pulsePin, INPUT);
+  pinMode(ledPin, OUTPUT);
+  digitalWrite(ledPin, LOW);
+  dht.begin();
+
+  // OLED init
+  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
+    Serial.println("OLED failed");
+    while (true); // Halt
+  }
+
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.println("Adafruit IO BPM Monitor");
+  display.display();
+  delay(1500);
+}
+
+void loop() {
+  io.run(); // Keep Adafruit IO connection alive
+
+  pulseValue = analogRead(pulsePin);
+  unsigned long currentTime = millis();
+
+  if (pulseValue > threshold && (currentTime - lastBeatTime) > 300) {
+    unsigned long beatInterval = currentTime - lastBeatTime;
+    lastBeatTime = currentTime;
+    BPM = 60000 / beatInterval;
+
+    // Pulse flash
+    digitalWrite(ledPin, HIGH);
+    delay(50);
+    digitalWrite(ledPin, LOW);
+
+    bpmFeed->save(BPM); // Send BPM to Adafruit IO
+  }
+
+  // Read temperature and humidity
+  float temp = dht.readTemperature();
+  float hum = dht.readHumidity();
+
+  // Send to Adafruit IO if valid
+  if (!isnan(temp) && !isnan(hum)) {
+    tempFeed->save(temp);
+    humidityFeed->save(hum);
+  }
+
+  // Serial Output
+  Serial.print("BPM: "); Serial.print(BPM);
+  Serial.print("  Temp: "); Serial.print(temp);
+  Serial.print(" °C  Hum: "); Serial.print(hum); Serial.println(" %");
+
+  // OLED Output
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setCursor(0, 0);
+  display.println("Heart Monitor Online");
+
+  display.setTextSize(2);
+  display.setCursor(0, 14);
+  display.print("BPM: ");
+  display.println(BPM);
+
+  display.setTextSize(1);
+  display.setCursor(0, 40);
+  display.print("T: ");
+  display.print(temp, 1);
+  display.print(" C");
+
+  display.setCursor(70, 40);
+  display.print("H: ");
+  display.print(hum, 0);
+  display.print("%");
+
+  display.setCursor(100, 0);
+  display.setTextSize(2);
+  display.print((millis() - lastBeatTime < 100) ? "♥" : ".");
+
+  display.display();
+
+  delay(1000); // Update display every 1 sec
+}
+
