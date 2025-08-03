@@ -13,17 +13,11 @@ Project Overview
 
 Key Components
 
-System Architecture & Setup
+code overview
 
-Wiring and Circuit Diagram
+output
 
-How It Works
-
-Web Monitoring Dashboard
-
-Code and Embedded C Details
-
-Results and Output
+future and improvements
 
 Future Enhancements
 ## Project Overview
@@ -40,21 +34,6 @@ OLED Display (SSD1306) – 128x64 I2C display to show BPM and system status
 Jumper Wires and Breadboard – For wiring and prototyping
 
 USB Cable – For programming and power supply
-
-
-
-
-## Key Components
-ESP32 Dev Board – Main controller with Wi-Fi and Bluetooth support
-
-Pulse Sensor – IR-based sensor to detect heartbeats from finger
-
-OLED Display (SSD1306) – 128x64 I2C display to show BPM and system status
-
-Jumper Wires and Breadboard – For wiring and prototyping
-
-USB Cable – For programming and power supply
-
 
 
 
