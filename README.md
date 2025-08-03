@@ -19,7 +19,7 @@ output
 
 future and improvements
 
-Future Enhancements
+
 ## Project Overview
 The heart rate monitor detects the user's pulse using a pulse sensor (usually an IR-based module), calculates the BPM, and displays the results on a 0.96" OLED screen. The ESP32 board handles sensor reading, timing, and display updates. This setup can be easily extended to include Wi-Fi-based logging or mobile alerts.
 
